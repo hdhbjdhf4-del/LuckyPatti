@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">Zoo Roulette Predictor</string>
+    <string name="app_title">Zoo Roulette Predictor</string>
+    <string name="initial_result">परिणाम यहाँ दिखाई देगा</string>
+    <string name="next_prediction">अगला रैंडम चयन:\n\n%1$s</string>
+    <string name="result_cleared">इतिहास साफ कर दिया गया।</string>
+    <string name="predict">प्रेडिक्ट करें</string>
+    <string name="history_title">पिछले परिणाम</string>
+    <string name="no_history">अभी कोई इतिहास नहीं है।</string>
+    <string name="clear_history">इतिहास साफ करें</string>
+    <string name="disclaimer">यह केवल यादृच्छिक चयन है। Roulette के वास्तविक अगले परिणाम की भविष्यवाणी या जीत की गारंटी नहीं देता।</string>
+</resources>
