@@ -1,0 +1,13 @@
+plugins { id 'com.android.application' version '8.6.1' }
+
+android {
+    namespace 'com.aedev.zooroulettepredictor'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'com.aedev.zooroulettepredictor'
+        minSdk 23
+        targetSdk 35
+        versionCode 2
+        versionName '1.0.1'
+    }
+}
