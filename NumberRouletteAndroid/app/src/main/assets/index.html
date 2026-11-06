@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="hi"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#101522"><title>Zoo Roulette Predictor</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#101522;color:#f4f6fb;font-family:Arial,sans-serif;text-align:center}
+header{padding:15px 8px;background:#171f31;font-size:21px;font-weight:800;color:#ffd166}
+main{max-width:560px;margin:auto;padding:10px}.card{background:#1b263b;border-radius:16px;padding:13px;margin:11px 0;box-shadow:0 5px 18px #0004}
+#wheel{width:min(88vw,380px);height:min(88vw,380px);display:block;margin:6px auto}
+button{border:0;border-radius:9px;padding:11px 10px;margin:3px;background:#ffd166;color:#171717;font-weight:800;font-size:14px}
+button:disabled{opacity:.45}input{width:90px;padding:9px;border-radius:8px;border:0;font-size:16px}
+#result{font-size:32px;font-weight:900;margin:8px;color:#ffd166}#timer{font-size:20px;color:#9ee493}
+.grid{display:grid;grid-template-columns:repeat(6,1fr);gap:5px}.num{padding:10px 2px;border-radius:7px;color:white;font-weight:bold}
+.red{background:#c93445}.black{background:#222b3b;border:1px solid #657087}.green{background:#16865b}
+.small{font-size:12px;color:#c5cede;line-height:1.5}.history{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.history span{padding:7px 10px;border-radius:8px;font-weight:bold;color:white}
+</style></head><body>
+<header>🎡 ZOO ROULETTE PREDICTOR</header><main>
+<section class="card"><canvas id="wheel" width="600" height="600"></canvas>
+<div id="timer">बेट चुनें और स्पिन करें</div><div id="result">—</div>
+<button id="spin">SPIN / नंबर निकालें</button>
+<p class="small">ऑफलाइन वर्चुअल गेम। परिणाम पूरी तरह रैंडम हैं; किसी वास्तविक रूलेट का पूर्वानुमान नहीं।</p></section>
+<section class="card"><h3>वर्चुअल बेटिंग</h3>
+<p>कॉइन: <b id="coins">1000</b>　बेट: <input id="bet" type="number" min="10" max="1000" step="10" value="10"></p>
+<div class="grid" id="numbers"></div>
+<p><button onclick="place('red')">RED</button><button onclick="place('black')">BLACK</button>
+<button onclick="place('odd')">ODD</button><button onclick="place('even')">EVEN</button>
+<button onclick="place('low')">1–18</button><button onclick="place('high')">19–36</button></p>
+<p id="betstatus" class="small">पहले नंबर या विकल्प चुनें।</p></section>
+<section class="card"><h3>पिछले 20 रिजल्ट</h3><div id="history" class="history">अभी कोई रिजल्ट नहीं</div>
+<button onclick="clearHistory()">हिस्ट्री साफ करें</button>
+<button onclick="resetCoins()">कॉइन रीसेट</button></section></main>
+<script>
+'use strict';
+const order=[0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,5,24,16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26];
+const reds=new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
+const color=n=>n===0?'green':reds.has(n)?'red':'black';
+let saved={};try{saved=JSON.parse(localStorage.getItem('zooRouletteSave')||'{}')}catch(e){}
+let coins=Number.isFinite(saved.coins)?saved.coins:1000,history=Array.isArray(saved.history)?saved.history.slice(0,20):[];
+let pending=null,spinning=false;
+const canvas=document.getElementById('wheel'),ctx=canvas.getContext('2d');
+function drawWheel(angle=0){
+ const cx=300,cy=300,r=275;ctx.clearRect(0,0,600,600);
+ order.forEach((n,i)=>{let a=angle+i*2*Math.PI/37-Math.PI/2,b=a+2*Math.PI/37;
+ ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,a,b);ctx.closePath();
+ ctx.fillStyle=n===0?'#16865b':reds.has(n)?'#c93445':'#202b3d';ctx.fill();
+ ctx.strokeStyle='#f5d78e';ctx.lineWidth=2;ctx.stroke();
+ let m=(a+b)/2;ctx.save();ctx.translate(cx+Math.cos(m)*220,cy+Math.sin(m)*220);ctx.rotate(m+Math.PI/2);
+ ctx.fillStyle='white';ctx.font='bold 19px Arial';ctx.textAlign='center';ctx.fillText(n,0,7);ctx.restore()});
+ ctx.beginPath();ctx.arc(cx,cy,45,0,Math.PI*2);ctx.fillStyle='#d6a84f';ctx.fill();
+ ctx.fillStyle='#172033';ctx.font='bold 18px Arial';ctx.textAlign='center';ctx.fillText('SPIN',cx,306);
+ ctx.fillStyle='#ffd166';ctx.beginPath();ctx.moveTo(300,8);ctx.lineTo(282,42);ctx.lineTo(318,42);ctx.fill();
+}
+drawWheel();
+const grid=document.getElementById('numbers');
+for(let n=0;n<=36;n++){const b=document.createElement('button');b.className='num '+color(n);b.textContent=n;b.onclick=()=>place(n);grid.appendChild(b)}
+function save(){localStorage.setItem('zooRouletteSave',JSON.stringify({coins,history}))}
+function updateCoins(){document.getElementById('coins').textContent=coins;save()}
+function place(choice){
+ if(spinning)return;
+ const amount=Math.floor(Number(document.getElementById('bet').value));
+ if(!Number.isFinite(amount)||amount<10||amount>1000||amount>coins){document.getElementById('betstatus').textContent='बेट 10–1000 और उपलब्ध कॉइन के भीतर रखें।';return}
+ if(pending)coins+=pending.amount;
+ coins-=amount;pending={choice,amount};updateCoins();
+ document.getElementById('betstatus').textContent='चयन: '+choice+' | बेट: '+amount+' कॉइन';
+}
+function payout(choice,n){
+ if(typeof choice==='number')return choice===n?35:0;
+ if(choice==='red'||choice==='black')return color(n)===choice?2:0;
+ if(choice==='odd')return n!==0&&n%2===1?2:0;
+ if(choice==='even')return n!==0&&n%2===0?2:0;
+ if(choice==='low')return n>=1&&n<=18?2:0;
+ if(choice==='high')return n>=19&&n<=36?2:0;return 0;
+}
+function spin(){
+ if(spinning)return;if(!pending){document.getElementById('betstatus').textContent='पहले बेट चुनें।';return}
+ spinning=true;document.getElementById('spin').disabled=true;let sec=15;
+ document.getElementById('timer').textContent='काउंटडाउन: '+sec;
+ const tick=setInterval(()=>{sec--;document.getElementById('timer').textContent='काउंटडाउन: '+sec;
+ if(sec<=0){clearInterval(tick);const n=Math.floor(Math.random()*37),idx=order.indexOf(n);let frame=0;
+ const frames=100,finalAngle=Math.PI*12+(37-idx)*2*Math.PI/37;
+ function animate(){frame++;const p=frame/frames;drawWheel(finalAngle*(1-Math.pow(1-p,3)));
+ if(frame<frames)requestAnimationFrame(animate);else finish(n)}animate()}},1000);
+}
+function finish(n){
+ const bet=pending,won=payout(bet.choice,n)*bet.amount;coins+=won;pending=null;
+ history.unshift(n);history=history.slice(0,20);
+ document.getElementById('result').textContent=n+' • '+color(n).toUpperCase();
+ document.getElementById('betstatus').textContent=won?'जीत! '+won+' कॉइन का भुगतान।':'इस बार बेट नहीं जीती।';
+ document.getElementById('timer').textContent='अगले राउंड के लिए तैयार';
+ updateCoins();renderHistory();spinning=false;document.getElementById('spin').disabled=false;
+}
+function renderHistory(){const el=document.getElementById('history');el.innerHTML='';
+ if(!history.length)el.textContent='अभी कोई रिजल्ट नहीं';
+ history.forEach(n=>{const s=document.createElement('span');s.className=color(n);s.textContent=n;el.appendChild(s)});save()}
+function clearHistory(){history=[];renderHistory()}
+function resetCoins(){if(spinning)return;coins=1000;pending=null;updateCoins();document.getElementById('betstatus').textContent='कॉइन 1000 पर रीसेट हुए।'}
+document.getElementById('spin').onclick=spin;updateCoins();renderHistory();
+</script></body></html>
